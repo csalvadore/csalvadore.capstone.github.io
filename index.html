@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset=utf-8 />
+    <title>Congestion Management Comparison Web Map</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    
+     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css"
+   integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
+   crossorigin=""/>
+     <script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"
+   integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg=="
+   crossorigin=""></script>
+
+    <link href='http://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
+   
+    
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: whitesmoke;
+            font-family: Lato, sans-serif;
+            color: #0D0000;
+        }
+        header {
+            padding: 6px 10%;
+        }
+        h1 {
+            display: inline-block;
+            margin-bottom: 0;
+            margin-top: 0;
+            color: #001323;
+            font-size: 70px;
+            text-shadow: 3px 2px #4B4949;
+        }
+        h2 {
+            display: inline-block;
+            color: #001323;
+            margin-bottom: 0;
+            margin-top: 0;
+            font-size: 20px;
+        }
+        #map {
+            width: 100%;
+            height: 620px;
+            margin: 10px auto;
+        }
+        footer {
+            padding: 6px 5%;
+            width: 80%;
+        }
+        p {
+            font-size: 1em;
+            color: #001323;
+        }
+        .info {
+            padding: 6px 8px;
+            font: 14px/16px Arial, Helvetica, sans-serif;
+            background: white;
+            background: rgba(255,255,255,0.8);
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-radius: 5px;
+            width: auto !important;
+            height: auto !important;
+        }
+        .info h4 {
+            margin: 0 0 5px;
+            color: #777;
+        }
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+        }
+ 
+/*        .legend {
+            line-height: 18px;
+            color: #555;
+        }
+        .legend i {
+            width: 18px;
+            height: 18px;
+            float: left;
+            margin-right: 8px;
+            opacity: 0.7;
+        }
+        button {
+            background-color: darkslategrey;
+            border: none;
+            color: white;
+            font-size: .7em;
+            margin-left: 3%;
+            padding: 8px 20px;
+            border-radius: 8px;
+            transition-duration: 0.4s;
+        }
+        button:hover {
+            background-color: lightgrey;
+            border-color: grey;
+            color: white;
+        }*/
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Congested Corridors in the DVRPC Region</h1>
+        <h2>Comparing Events Databases for use in the Congestion Management Process<br>Christine Salvadore: Spring 2019 Capstone</h2>
+    </header>
+
+    <div id='map'></div>
+    
+ 
+
+
+    <footer>
+        <p>All Incident Counts & Durations are normalized by corridor length and divided into 4 Quantile groups. Any corridor with a Count or Duration of 0 is excluded from the quantile breakdown and drawn in grey on the map.</p>
+        
+    </footer>
+
+
+    <script src="GEOJSONS/rimis_roads.geojson"></script>
+    <script src="GEOJSONS/ritis_roads.geojson"></script>
+    <script src="GEOJSONS/cctv.geojson"></script>
+    <script src="GEOJSONS/signals.geojson"></script>
+    <script src="GEOJSONS/bus_routes.geojson"></script>
+    <script src="GEOJSONS/rail_merged.geojson"></script>
+
+    
+    <script>
+
+      var map = L.map('map', {
+          center: [40,-75.16],
+          zoom: 10
+      });
+      
+      var tiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+           attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+           maxZoom: 15,
+            });
+
+      tiles.addTo(map);
+      var tiles2 = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012'
+        });
+        
+    var tiles3 = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        });
+        
+    
+
+// FIGURES
+        
+
+    var rimis = {1: 'No Data', 2: 'No Data', 3: 'No Data', 4: 'No Data', 5: 'No Data', 6: '<iframe src="python/rimis6.html" height="250" width="300" style="border:none;"></iframe>', 7: 'No Data', 8: 'No Data', 9: '<iframe src="python/rimis9.html" height="250" width="300" style="border:none;"></iframe>', 10: '<iframe src="python/rimis10.html" height="250" width="300" style="border:none;"></iframe>', 11: '<iframe src="python/rimis11.html" height="250" width="300" style="border:none;"></iframe>', 12: '<iframe src="python/rimis12.html" height="250" width="300" style="border:none;"></iframe>', 13: '<iframe src="python/rimis13.html" height="250" width="300" style="border:none;"></iframe>', 14: '<iframe src="python/rimis14.html" height="250" width="300" style="border:none;"></iframe>', 15: '<iframe src="python/rimis15.html" height="250" width="300" style="border:none;"></iframe>', 16: '<iframe src="python/rimis16.html" height="250" width="300" style="border:none;"></iframe>', 17: '<iframe src="python/rimis17.html" height="250" width="300" style="border:none;"></iframe>', 18: '<iframe src="python/rimis18.html" height="250" width="300" style="border:none;"></iframe>', 19: '<iframe src="python/rimis19.html" height="250" width="300" style="border:none;"></iframe>', 20: '<iframe src="python/rimis20.html" height="250" width="300" style="border:none;"></iframe>', 21: '<iframe src="python/rimis21.html" height="250" width="300" style="border:none;"></iframe>', 22: '<iframe src="python/rimis22.html" height="250" width="300" style="border:none;"></iframe>', 23: '<iframe src="python/rimis23.html" height="250" width="300" style="border:none;"></iframe>', 24: '<iframe src="python/rimis24.html" height="250" width="300" style="border:none;"></iframe>', 25: '<iframe src="python/rimis25.html" height="250" width="300" style="border:none;"></iframe>', 26: '<iframe src="python/rimis26.html" height="250" width="300" style="border:none;"></iframe>', 27: '<iframe src="python/rimis27.html" height="250" width="300" style="border:none;"></iframe>', 28: '<iframe src="python/rimis28.html" height="250" width="300" style="border:none;"></iframe>', 29: '<iframe src="python/rimis29.html" height="250" width="300" style="border:none;"></iframe>', 30: '<iframe src="python/rimis30.html" height="250" width="300" style="border:none;"></iframe>', 31: '<iframe src="python/rimis31.html" height="250" width="300" style="border:none;"></iframe>', 32: '<iframe src="python/rimis32.html" height="250" width="300" style="border:none;"></iframe>', 33: '<iframe src="python/rimis33.html" height="250" width="300" style="border:none;"></iframe>', 34: '<iframe src="python/rimis34.html" height="250" width="300" style="border:none;"></iframe>', 35: '<iframe src="python/rimis35.html" height="250" width="300" style="border:none;"></iframe>', 36: '<iframe src="python/rimis36.html" height="250" width="300" style="border:none;"></iframe>', 37: '<iframe src="python/rimis37.html" height="250" width="300" style="border:none;"></iframe>', 38: '<iframe src="python/rimis38.html" height="250" width="300" style="border:none;"></iframe>', 39: 'No Data', 40: '<iframe src="python/rimis40.html" height="250" width="300" style="border:none;"></iframe>', 41: '<iframe src="python/rimis41.html" height="250" width="300" style="border:none;"></iframe>', 42: '<iframe src="python/rimis42.html" height="250" width="300" style="border:none;"></iframe>', 43: '<iframe src="python/rimis43.html" height="250" width="300" style="border:none;"></iframe>', 44: '<iframe src="python/rimis44.html" height="250" width="300" style="border:none;"></iframe>', 45: '<iframe src="python/rimis45.html" height="250" width="300" style="border:none;"></iframe>', 46: '<iframe src="python/rimis46.html" height="250" width="300" style="border:none;"></iframe>', 47: '<iframe src="python/rimis47.html" height="250" width="300" style="border:none;"></iframe>', 48: '<iframe src="python/rimis48.html" height="250" width="300" style="border:none;"></iframe>', 49: '<iframe src="python/rimis49.html" height="250" width="300" style="border:none;"></iframe>', 50: '<iframe src="python/rimis50.html" height="250" width="300" style="border:none;"></iframe>', 51: '<iframe src="python/rimis51.html" height="250" width="300" style="border:none;"></iframe>', 52: '<iframe src="python/rimis52.html" height="250" width="300" style="border:none;"></iframe>', 53: '<iframe src="python/rimis53.html" height="250" width="300" style="border:none;"></iframe>', 54: '<iframe src="python/rimis54.html" height="250" width="300" style="border:none;"></iframe>', 55: '<iframe src="python/rimis55.html" height="250" width="300" style="border:none;"></iframe>', 56: '<iframe src="python/rimis56.html" height="250" width="300" style="border:none;"></iframe>', 57: '<iframe src="python/rimis57.html" height="250" width="300" style="border:none;"></iframe>', 58: '<iframe src="python/rimis58.html" height="250" width="300" style="border:none;"></iframe>', 59: '<iframe src="python/rimis59.html" height="250" width="300" style="border:none;"></iframe>', 60: '<iframe src="python/rimis60.html" height="250" width="300" style="border:none;"></iframe>', 61: '<iframe src="python/rimis61.html" height="250" width="300" style="border:none;"></iframe>', 62: '<iframe src="python/rimis62.html" height="250" width="300" style="border:none;"></iframe>', 63: '<iframe src="python/rimis63.html" height="250" width="300" style="border:none;"></iframe>', 64: '<iframe src="python/rimis64.html" height="250" width="300" style="border:none;"></iframe>', 65: '<iframe src="python/rimis65.html" height="250" width="300" style="border:none;"></iframe>', 66: '<iframe src="python/rimis66.html" height="250" width="300" style="border:none;"></iframe>', 67: '<iframe src="python/rimis67.html" height="250" width="300" style="border:none;"></iframe>', 68: '<iframe src="python/rimis68.html" height="250" width="300" style="border:none;"></iframe>', 69: '<iframe src="python/rimis69.html" height="250" width="300" style="border:none;"></iframe>', 70: '<iframe src="python/rimis70.html" height="250" width="300" style="border:none;"></iframe>', 71: '<iframe src="python/rimis71.html" height="250" width="300" style="border:none;"></iframe>', 72: '<iframe src="python/rimis72.html" height="250" width="300" style="border:none;"></iframe>', 73: 'No Data', 74: '<iframe src="python/rimis74.html" height="250" width="300" style="border:none;"></iframe>', 75: '<iframe src="python/rimis75.html" height="250" width="300" style="border:none;"></iframe>', 76: '<iframe src="python/rimis76.html" height="250" width="300" style="border:none;"></iframe>', 77: '<iframe src="python/rimis77.html" height="250" width="300" style="border:none;"></iframe>', 78: '<iframe src="python/rimis78.html" height="250" width="300" style="border:none;"></iframe>', 79: '<iframe src="python/rimis79.html" height="250" width="300" style="border:none;"></iframe>', 80: 'No Data', 81: '<iframe src="python/rimis81.html" height="250" width="300" style="border:none;"></iframe>', 82: '<iframe src="python/rimis82.html" height="250" width="300" style="border:none;"></iframe>', 83: 'No Data', 84: '<iframe src="python/rimis84.html" height="250" width="300" style="border:none;"></iframe>', 85: '<iframe src="python/rimis85.html" height="250" width="300" style="border:none;"></iframe>', 86: '<iframe src="python/rimis86.html" height="250" width="300" style="border:none;"></iframe>', 87: '<iframe src="python/rimis87.html" height="250" width="300" style="border:none;"></iframe>', 88: '<iframe src="python/rimis88.html" height="250" width="300" style="border:none;"></iframe>', 89: '<iframe src="python/rimis89.html" height="250" width="300" style="border:none;"></iframe>', 90: '<iframe src="python/rimis90.html" height="250" width="300" style="border:none;"></iframe>', 91: '<iframe src="python/rimis91.html" height="250" width="300" style="border:none;"></iframe>', 92: '<iframe src="python/rimis92.html" height="250" width="300" style="border:none;"></iframe>', 93: 'No Data', 94: '<iframe src="python/rimis94.html" height="250" width="300" style="border:none;"></iframe>', 95: '<iframe src="python/rimis95.html" height="250" width="300" style="border:none;"></iframe>', 96: '<iframe src="python/rimis96.html" height="250" width="300" style="border:none;"></iframe>', 97: 'No Data', 98: '<iframe src="python/rimis98.html" height="250" width="300" style="border:none;"></iframe>', 99: '<iframe src="python/rimis99.html" height="250" width="300" style="border:none;"></iframe>', 100: '<iframe src="python/rimis100.html" height="250" width="300" style="border:none;"></iframe>', 101: '<iframe src="python/rimis101.html" height="250" width="300" style="border:none;"></iframe>', 102: 'No Data', 103: 'No Data', 104: '<iframe src="python/rimis104.html" height="250" width="300" style="border:none;"></iframe>', 105: '<iframe src="python/rimis105.html" height="250" width="300" style="border:none;"></iframe>', 106: '<iframe src="python/rimis106.html" height="250" width="300" style="border:none;"></iframe>', 107: '<iframe src="python/rimis107.html" height="250" width="300" style="border:none;"></iframe>', 108: 'No Data', 109: '<iframe src="python/rimis109.html" height="250" width="300" style="border:none;"></iframe>', 110: '<iframe src="python/rimis110.html" height="250" width="300" style="border:none;"></iframe>', 111: '<iframe src="python/rimis111.html" height="250" width="300" style="border:none;"></iframe>', 112: '<iframe src="python/rimis112.html" height="250" width="300" style="border:none;"></iframe>', 113: '<iframe src="python/rimis113.html" height="250" width="300" style="border:none;"></iframe>', 114: 'No Data', 
+    115: '<iframe src="python/rimis115.html" height="250" width="300" style="border:none;"></iframe>', 116: '<iframe src="python/rimis116.html" height="250" width="300" style="border:none;"></iframe>', 117: '<iframe src="python/rimis117.html" height="250" width="300" style="border:none;"></iframe>', 118: 'No Data', 119: '<iframe src="python/rimis119.html" height="250" width="300" style="border:none;"></iframe>', 120: 'No Data', 121: '<iframe src="python/rimis121.html" height="250" width="300" style="border:none;"></iframe>', 122: '<iframe src="python/rimis122.html" height="250" width="300" style="border:none;"></iframe>', 123: 'No Data', 124: '<iframe src="python/rimis124.html" height="250" width="300" style="border:none;"></iframe>', 125: '<iframe src="python/rimis125.html" height="250" width="300" style="border:none;"></iframe>', 126: '<iframe src="python/rimis126.html" height="250" width="300" style="border:none;"></iframe>', 127: '<iframe src="python/rimis127.html" height="250" width="300" style="border:none;"></iframe>', 128: 'No Data', 129: '<iframe src="python/rimis129.html" height="250" width="300" style="border:none;"></iframe>', 130: 'No Data', 131: 'No Data', 132: 'No Data', 133: '<iframe src="python/rimis133.html" height="250" width="300" style="border:none;"></iframe>', 134: 'No Data', 135: '<iframe src="python/rimis135.html" height="250" width="300" style="border:none;"></iframe>', 136: '<iframe src="python/rimis136.html" height="250" width="300" style="border:none;"></iframe>', 137: '<iframe src="python/rimis137.html" height="250" width="300" style="border:none;"></iframe>', 138: '<iframe src="python/rimis138.html" height="250" width="300" style="border:none;"></iframe>', 139: '<iframe src="python/rimis139.html" height="250" width="300" style="border:none;"></iframe>', 140: '<iframe src="python/rimis140.html" height="250" width="300" style="border:none;"></iframe>', 141: 'No Data', 142: 'No Data', 143: '<iframe src="python/rimis143.html" height="250" width="300" style="border:none;"></iframe>', 144: '<iframe src="python/rimis144.html" height="250" width="300" style="border:none;"></iframe>', 145: '<iframe src="python/rimis145.html" height="250" width="300" style="border:none;"></iframe>', 146: 'No Data', 147: '<iframe src="python/rimis147.html" height="250" width="300" style="border:none;"></iframe>', 148: 'No Data', 149: 'No Data', 150: 'No Data', 151: 'No Data', 152: '<iframe src="python/rimis152.html" height="250" width="300" style="border:none;"></iframe>', 153: '<iframe src="python/rimis153.html" height="250" width="300" style="border:none;"></iframe>', 154: 'No Data', 155: 'No Data', 156: '<iframe src="python/rimis156.html" height="250" width="300" style="border:none;"></iframe>', 157: 'No Data', 158: '<iframe src="python/rimis158.html" height="250" width="300" style="border:none;"></iframe>', 159: '<iframe src="python/rimis159.html" height="250" width="300" style="border:none;"></iframe>', 160: '<iframe src="python/rimis160.html" height="250" width="300" style="border:none;"></iframe>', 161: '<iframe src="python/rimis161.html" height="250" width="300" style="border:none;"></iframe>', 162: '<iframe src="python/rimis162.html" height="250" width="300" style="border:none;"></iframe>', 163: '<iframe src="python/rimis163.html" height="250" width="300" style="border:none;"></iframe>', 164: '<iframe src="python/rimis164.html" height="250" width="300" style="border:none;"></iframe>', 165: '<iframe src="python/rimis165.html" height="250" width="300" style="border:none;"></iframe>', 166: '<iframe src="python/rimis166.html" height="250" width="300" style="border:none;"></iframe>', 167: '<iframe src="python/rimis167.html" height="250" width="300" style="border:none;"></iframe>', 168: '<iframe src="python/rimis168.html" height="250" width="300" style="border:none;"></iframe>', 
+    200: '<iframe src="python/rimis200.html" height="250" width="300" style="border:none;"></iframe>', 201: '<iframe src="python/rimis201.html" height="250" width="300" style="border:none;"></iframe>', 202: '<iframe src="python/rimis202.html" height="250" width="300" style="border:none;"></iframe>', 203: '<iframe src="python/rimis203.html" height="250" width="300" style="border:none;"></iframe>', 204: '<iframe src="python/rimis204.html" height="250" width="300" style="border:none;"></iframe>', 205: '<iframe src="python/rimis205.html" height="250" width="300" style="border:none;"></iframe>', 206: '<iframe src="python/rimis206.html" height="250" width="300" style="border:none;"></iframe>', 207: '<iframe src="python/rimis207.html" height="250" width="300" style="border:none;"></iframe>', 208: '<iframe src="python/rimis208.html" height="250" width="300" style="border:none;"></iframe>', 209: '<iframe src="python/rimis209.html" height="250" width="300" style="border:none;"></iframe>', 210: '<iframe src="python/rimis210.html" height="250" width="300" style="border:none;"></iframe>', 211: '<iframe src="python/rimis211.html" height="250" width="300" style="border:none;"></iframe>', 212: '<iframe src="python/rimis212.html" height="250" width="300" style="border:none;"></iframe>', 213: '<iframe src="python/rimis213.html" height="250" width="300" style="border:none;"></iframe>', 214: 'No Data', 215: '<iframe src="python/rimis215.html" height="250" width="300" style="border:none;"></iframe>', 216: '<iframe src="python/rimis216.html" height="250" width="300" style="border:none;"></iframe>', 217: '<iframe src="python/rimis217.html" height="250" width="300" style="border:none;"></iframe>', 218: '<iframe src="python/rimis218.html" height="250" width="300" style="border:none;"></iframe>', 219: '<iframe src="python/rimis219.html" height="250" width="300" style="border:none;"></iframe>', 220: '<iframe src="python/rimis220.html" height="250" width="300" style="border:none;"></iframe>', 221: '<iframe src="python/rimis221.html" height="250" width="300" style="border:none;"></iframe>', 222: '<iframe src="python/rimis222.html" height="250" width="300" style="border:none;"></iframe>', 223: '<iframe src="python/rimis223.html" height="250" width="300" style="border:none;"></iframe>', 224: '<iframe src="python/rimis224.html" height="250" width="300" style="border:none;"></iframe>', 225: '<iframe src="python/rimis225.html" height="250" width="300" style="border:none;"></iframe>', 226: '<iframe src="python/rimis226.html" height="250" width="300" style="border:none;"></iframe>', 227: '<iframe src="python/rimis227.html" height="250" width="300" style="border:none;"></iframe>', 228: '<iframe src="python/rimis228.html" height="250" width="300" style="border:none;"></iframe>', 229: '<iframe src="python/rimis229.html" height="250" width="300" style="border:none;"></iframe>', 230: '<iframe src="python/rimis230.html" height="250" width="300" style="border:none;"></iframe>', 231: '<iframe src="python/rimis231.html" height="250" width="300" style="border:none;"></iframe>', 232: '<iframe src="python/rimis232.html" height="250" width="300" style="border:none;"></iframe>', 233: '<iframe src="python/rimis233.html" height="250" width="300" style="border:none;"></iframe>', 234: '<iframe src="python/rimis234.html" height="250" width="300" style="border:none;"></iframe>', 235: '<iframe src="python/rimis235.html" height="250" width="300" style="border:none;"></iframe>', 236: '<iframe src="python/rimis236.html" height="250" width="300" style="border:none;"></iframe>', 237: '<iframe src="python/rimis237.html" height="250" width="300" style="border:none;"></iframe>', 238: '<iframe src="python/rimis238.html" height="250" width="300" style="border:none;"></iframe>', 239: '<iframe src="python/rimis239.html" height="250" width="300" style="border:none;"></iframe>', 240: '<iframe src="python/rimis240.html" height="250" width="300" style="border:none;"></iframe>', 241: '<iframe src="python/rimis241.html" height="250" width="300" style="border:none;"></iframe>', 242: '<iframe src="python/rimis242.html" height="250" width="300" style="border:none;"></iframe>', 243: '<iframe src="python/rimis243.html" height="250" width="300" style="border:none;"></iframe>', 244: '<iframe src="python/rimis244.html" height="250" width="300" style="border:none;"></iframe>', 245: '<iframe src="python/rimis245.html" height="250" width="300" style="border:none;"></iframe>', 246: '<iframe src="python/rimis246.html" height="250" width="300" style="border:none;"></iframe>', 247: '<iframe src="python/rimis247.html" height="250" width="300" style="border:none;"></iframe>', 248: '<iframe src="python/rimis248.html" height="250" width="300" style="border:none;"></iframe>', 249: '<iframe src="python/rimis249.html" height="250" width="300" style="border:none;"></iframe>', 250: '<iframe src="python/rimis250.html" height="250" width="300" style="border:none;"></iframe>', 251: '<iframe src="python/rimis251.html" height="250" width="300" style="border:none;"></iframe>', 252: '<iframe src="python/rimis252.html" height="250" width="300" style="border:none;"></iframe>', 253: '<iframe src="python/rimis253.html" height="250" width="300" style="border:none;"></iframe>', 254: '<iframe src="python/rimis254.html" height="250" width="300" style="border:none;"></iframe>', 255: '<iframe src="python/rimis255.html" height="250" width="300" style="border:none;"></iframe>', 256: '<iframe src="python/rimis256.html" height="250" width="300" style="border:none;"></iframe>', 257: '<iframe src="python/rimis257.html" height="250" width="300" style="border:none;"></iframe>', 258: '<iframe src="python/rimis258.html" height="250" width="300" style="border:none;"></iframe>', 259: '<iframe src="python/rimis259.html" height="250" width="300" style="border:none;"></iframe>', 260: '<iframe src="python/rimis260.html" height="250" width="300" style="border:none;"></iframe>', 261: '<iframe src="python/rimis261.html" height="250" width="300" style="border:none;"></iframe>', 262: '<iframe src="python/rimis262.html" height="250" width="300" style="border:none;"></iframe>', 263: 'No Data', 264: 'No Data', 265: 'No Data', 266: '<iframe src="python/rimis266.html" height="250" width="300" style="border:none;"></iframe>', 267: '<iframe src="python/rimis267.html" height="250" width="300" style="border:none;"></iframe>', 268: '<iframe src="python/rimis268.html" height="250" width="300" style="border:none;"></iframe>', 269: '<iframe src="python/rimis269.html" height="250" width="300" style="border:none;"></iframe>', 270: '<iframe src="python/rimis270.html" height="250" width="300" style="border:none;"></iframe>', 271: '<iframe src="python/rimis271.html" height="250" width="300" style="border:none;"></iframe>', 272: '<iframe src="python/rimis272.html" height="250" width="300" style="border:none;"></iframe>', 273: '<iframe src="python/rimis273.html" height="250" width="300" style="border:none;"></iframe>', 274: 'No Data', 275: 'No Data', 276: '<iframe src="python/rimis276.html" height="250" width="300" style="border:none;"></iframe>', 277: '<iframe src="python/rimis277.html" height="250" width="300" style="border:none;"></iframe>', 278: '<iframe src="python/rimis278.html" height="250" width="300" style="border:none;"></iframe>', 279: '<iframe src="python/rimis279.html" height="250" width="300" style="border:none;"></iframe>', 280: 'No Data', 281: 'No Data', 282: 'No Data', 283: 'No Data', 284: 'No Data', 285: '<iframe src="python/rimis285.html" height="250" width="300" style="border:none;"></iframe>', 286: 'No Data', 287: 'No Data', 288: 'No Data', 289: 'No Data', 290: 'No Data', 291: 'No Data', 292: 'No Data', 293: 'No Data', 294: '<iframe src="python/rimis294.html" height="250" width="300" style="border:none;"></iframe>', 295: 'No Data', 296: 'No Data', 297: '<iframe src="python/rimis297.html" height="250" width="300" style="border:none;"></iframe>', 298: '<iframe src="python/rimis298.html" height="250" width="300" style="border:none;"></iframe>', 299: 'No Data', 
+    300: 'No Data', 301: 'No Data', 302: '<iframe src="python/rimis302.html" height="250" width="300" style="border:none;"></iframe>', 303: '<iframe src="python/rimis303.html" height="250" width="300" style="border:none;"></iframe>', 304: '<iframe src="python/rimis304.html" height="250" width="300" style="border:none;"></iframe>', 305: '<iframe src="python/rimis305.html" height="250" width="300" style="border:none;"></iframe>', 306: 'No Data', 307: 'No Data'}
+    
+    var ritis = {1: 'No Data', 2: 'No Data', 3: 'No Data', 4: 'No Data', 5: 'No Data', 6: 'No Data', 7: '<iframe src="python/ritis7.html" height="250" width="300" style="border:none;"></iframe>', 8: 'No Data', 9:'<iframe src="python/ritis9.html" height="250" width="300" style="border:none;"></iframe>', 10: '<iframe src="python/ritis10.html" height="250" width="300" style="border:none;"></iframe>', 10: '<iframe src="python/ritis10.html" height="250" width="300" style="border:none;"></iframe>', 11: '<iframe src="python/ritis11.html" height="250" width="300" style="border:none;"></iframe>', 12: '<iframe src="python/ritis12.html" height="250" width="300" style="border:none;"></iframe>', 13: '<iframe src="python/ritis13.html" height="250" width="300" style="border:none;"></iframe>', 14: '<iframe src="python/ritis14.html" height="250" width="300" style="border:none;"></iframe>', 15: '<iframe src="python/ritis15.html" height="250" width="300" style="border:none;"></iframe>', 16: '<iframe src="python/ritis16.html" height="250" width="300" style="border:none;"></iframe>', 17: '<iframe src="python/ritis17.html" height="250" width="300" style="border:none;"></iframe>', 18: '<iframe src="python/ritis18.html" height="250" width="300" style="border:none;"></iframe>', 19: '<iframe src="python/ritis19.html" height="250" width="300" style="border:none;"></iframe>', 20: '<iframe src="python/ritis20.html" height="250" width="300" style="border:none;"></iframe>', 21: '<iframe src="python/ritis21.html" height="250" width="300" style="border:none;"></iframe>', 22: '<iframe src="python/ritis22.html" height="250" width="300" style="border:none;"></iframe>', 23: '<iframe src="python/ritis23.html" height="250" width="300" style="border:none;"></iframe>', 24: '<iframe src="python/ritis24.html" height="250" width="300" style="border:none;"></iframe>', 25: '<iframe src="python/ritis25.html" height="250" width="300" style="border:none;"></iframe>', 26: '<iframe src="python/ritis26.html" height="250" width="300" style="border:none;"></iframe>', 27: '<iframe src="python/ritis27.html" height="250" width="300" style="border:none;"></iframe>', 28: '<iframe src="python/ritis28.html" height="250" width="300" style="border:none;"></iframe>', 29: '<iframe src="python/ritis29.html" height="250" width="300" style="border:none;"></iframe>', 30: '<iframe src="python/ritis30.html" height="250" width="300" style="border:none;"></iframe>', 31: '<iframe src="python/ritis31.html" height="250" width="300" style="border:none;"></iframe>', 32: '<iframe src="python/ritis32.html" height="250" width="300" style="border:none;"></iframe>', 33: '<iframe src="python/ritis33.html" height="250" width="300" style="border:none;"></iframe>', 34: '<iframe src="python/ritis34.html" height="250" width="300" style="border:none;"></iframe>', 35: '<iframe src="python/ritis35.html" height="250" width="300" style="border:none;"></iframe>', 36: '<iframe src="python/ritis36.html" height="250" width="300" style="border:none;"></iframe>', 37: '<iframe src="python/ritis37.html" height="250" width="300" style="border:none;"></iframe>', 38: '<iframe src="python/ritis38.html" height="250" width="300" style="border:none;"></iframe>', 39: '<iframe src="python/ritis39.html" height="250" width="300" style="border:none;"></iframe>', 40: '<iframe src="python/ritis40.html" height="250" width="300" style="border:none;"></iframe>', 41: '<iframe src="python/ritis41.html" height="250" width="300" style="border:none;"></iframe>', 42: '<iframe src="python/ritis42.html" height="250" width="300" style="border:none;"></iframe>', 43: '<iframe src="python/ritis43.html" height="250" width="300" style="border:none;"></iframe>', 44: '<iframe src="python/ritis44.html" height="250" width="300" style="border:none;"></iframe>', 45: '<iframe src="python/ritis45.html" height="250" width="300" style="border:none;"></iframe>', 46: '<iframe src="python/ritis46.html" height="250" width="300" style="border:none;"></iframe>', 47: '<iframe src="python/ritis47.html" height="250" width="300" style="border:none;"></iframe>', 48: '<iframe src="python/ritis48.html" height="250" width="300" style="border:none;"></iframe>', 49: 'No Data', 50: '<iframe src="python/ritis50.html" height="250" width="300" style="border:none;"></iframe>', 51: '<iframe src="python/ritis51.html" height="250" width="300" style="border:none;"></iframe>', 52: '<iframe src="python/ritis52.html" height="250" width="300" style="border:none;"></iframe>', 53: '<iframe src="python/ritis53.html" height="250" width="300" style="border:none;"></iframe>', 54: '<iframe src="python/ritis54.html" height="250" width="300" style="border:none;"></iframe>', 55: '<iframe src="python/ritis55.html" height="250" width="300" style="border:none;"></iframe>', 56: '<iframe src="python/ritis56.html" height="250" width="300" style="border:none;"></iframe>', 57: '<iframe src="python/ritis57.html" height="250" width="300" style="border:none;"></iframe>', 58: '<iframe src="python/ritis58.html" height="250" width="300" style="border:none;"></iframe>', 59: '<iframe src="python/ritis59.html" height="250" width="300" style="border:none;"></iframe>', 60: '<iframe src="python/ritis60.html" height="250" width="300" style="border:none;"></iframe>', 61: '<iframe src="python/ritis61.html" height="250" width="300" style="border:none;"></iframe>', 62: '<iframe src="python/ritis62.html" height="250" width="300" style="border:none;"></iframe>', 63: '<iframe src="python/ritis63.html" height="250" width="300" style="border:none;"></iframe>', 64: '<iframe src="python/ritis64.html" height="250" width="300" style="border:none;"></iframe>', 65: '<iframe src="python/ritis65.html" height="250" width="300" style="border:none;"></iframe>', 66: '<iframe src="python/ritis66.html" height="250" width="300" style="border:none;"></iframe>', 67: '<iframe src="python/ritis67.html" height="250" width="300" style="border:none;"></iframe>', 68: '<iframe src="python/ritis68.html" height="250" width="300" style="border:none;"></iframe>', 69: '<iframe src="python/ritis69.html" height="250" width="300" style="border:none;"></iframe>', 70: '<iframe src="python/ritis70.html" height="250" width="300" style="border:none;"></iframe>', 71: '<iframe src="python/ritis71.html" height="250" width="300" style="border:none;"></iframe>', 72: 'No Data', 73: 'No Data', 74: '<iframe src="python/ritis74.html" height="250" width="300" style="border:none;"></iframe>', 75: '<iframe src="python/ritis75.html" height="250" width="300" style="border:none;"></iframe>', 76: '<iframe src="python/ritis76.html" height="250" width="300" style="border:none;"></iframe>', 77: '<iframe src="python/ritis77.html" height="250" width="300" style="border:none;"></iframe>', 78: 'No Data', 79: '<iframe src="python/ritis79.html" height="250" width="300" style="border:none;"></iframe>', 80: '<iframe src="python/ritis80.html" height="250" width="300" style="border:none;"></iframe>', 81: '<iframe src="python/ritis81.html" height="250" width="300" style="border:none;"></iframe>', 82: 'No Data', 83: '<iframe src="python/ritis83.html" height="250" width="300" style="border:none;"></iframe>', 84: '<iframe src="python/ritis84.html" height="250" width="300" style="border:none;"></iframe>', 85: '<iframe src="python/ritis85.html" height="250" width="300" style="border:none;"></iframe>', 86: '<iframe src="python/ritis86.html" height="250" width="300" style="border:none;"></iframe>', 87: '<iframe src="python/ritis87.html" height="250" width="300" style="border:none;"></iframe>', 88: '<iframe src="python/ritis88.html" height="250" width="300" style="border:none;"></iframe>', 89: '<iframe src="python/ritis89.html" height="250" width="300" style="border:none;"></iframe>', 90: '<iframe src="python/ritis90.html" height="250" width="300" style="border:none;"></iframe>', 91: '<iframe src="python/ritis91.html" height="250" width="300" style="border:none;"></iframe>', 92: '<iframe src="python/ritis92.html" height="250" width="300" style="border:none;"></iframe>', 93: '<iframe src="python/ritis93.html" height="250" width="300" style="border:none;"></iframe>', 94: '<iframe src="python/ritis94.html" height="250" width="300" style="border:none;"></iframe>', 95: '<iframe src="python/ritis95.html" height="250" width="300" style="border:none;"></iframe>', 96: '<iframe src="python/ritis96.html" height="250" width="300" style="border:none;"></iframe>', 97: 'No Data', 98: '<iframe src="python/ritis98.html" height="250" width="300" style="border:none;"></iframe>', 99: '<iframe src="python/ritis99.html" height="250" width="300" style="border:none;"></iframe>', 
+    100: 'No Data', 101: 'No Data', 102: 'No Data', 103: '<iframe src="python/ritis103.html" height="250" width="300" style="border:none;"></iframe>', 104: '<iframe src="python/ritis104.html" height="250" width="300" style="border:none;"></iframe>', 105: '<iframe src="python/ritis105.html" height="250" width="300" style="border:none;"></iframe>', 106: '<iframe src="python/ritis106.html" height="250" width="300" style="border:none;"></iframe>', 107: '<iframe src="python/ritis107.html" height="250" width="300" style="border:none;"></iframe>', 108: '<iframe src="python/ritis108.html" height="250" width="300" style="border:none;"></iframe>', 109: '<iframe src="python/ritis109.html" height="250" width="300" style="border:none;"></iframe>', 110: 'No Data', 111: 'No Data', 112: 'No Data', 113: '<iframe src="python/ritis113.html" height="250" width="300" style="border:none;"></iframe>', 114: 'No Data', 115: '<iframe src="python/ritis115.html" height="250" width="300" style="border:none;"></iframe>', 116: '<iframe src="python/ritis116.html" height="250" width="300" style="border:none;"></iframe>', 117: '<iframe src="python/ritis117.html" height="250" width="300" style="border:none;"></iframe>', 118: '<iframe src="python/ritis118.html" height="250" width="300" style="border:none;"></iframe>', 119: '<iframe src="python/ritis119.html" height="250" width="300" style="border:none;"></iframe>', 120: '<iframe src="python/ritis120.html" height="250" width="300" style="border:none;"></iframe>', 121: '<iframe src="python/ritis121.html" height="250" width="300" style="border:none;"></iframe>', 122: '<iframe src="python/ritis122.html" height="250" width="300" style="border:none;"></iframe>', 123: '<iframe src="python/ritis123.html" height="250" width="300" style="border:none;"></iframe>', 124: '<iframe src="python/ritis124.html" height="250" width="300" style="border:none;"></iframe>', 125: 'No Data', 126: '<iframe src="python/ritis126.html" height="250" width="300" style="border:none;"></iframe>', 127: '<iframe src="python/ritis127.html" height="250" width="300" style="border:none;"></iframe>', 128: 'No Data', 129: '<iframe src="python/ritis129.html" height="250" width="300" style="border:none;"></iframe>', 130: 'No Data', 131: 'No Data', 132: '<iframe src="python/ritis132.html" height="250" width="300" style="border:none;"></iframe>', 133: '<iframe src="python/ritis133.html" height="250" width="300" style="border:none;"></iframe>', 134: '<iframe src="python/ritis134.html" height="250" width="300" style="border:none;"></iframe>', 135: '<iframe src="python/ritis135.html" height="250" width="300" style="border:none;"></iframe>', 136: '<iframe src="python/ritis136.html" height="250" width="300" style="border:none;"></iframe>', 137: '<iframe src="python/ritis137.html" height="250" width="300" style="border:none;"></iframe>', 138: '<iframe src="python/ritis138.html" height="250" width="300" style="border:none;"></iframe>', 139: '<iframe src="python/ritis139.html" height="250" width="300" style="border:none;"></iframe>', 140: '<iframe src="python/ritis140.html" height="250" width="300" style="border:none;"></iframe>', 141: '<iframe src="python/ritis141.html" height="250" width="300" style="border:none;"></iframe>', 142: 'No Data', 143: '<iframe src="python/ritis143.html" height="250" width="300" style="border:none;"></iframe>', 144: '<iframe src="python/ritis144.html" height="250" width="300" style="border:none;"></iframe>', 145: '<iframe src="python/ritis145.html" height="250" width="300" style="border:none;"></iframe>', 146: '<iframe src="python/ritis146.html" height="250" width="300" style="border:none;"></iframe>', 147: '<iframe src="python/ritis147.html" height="250" width="300" style="border:none;"></iframe>', 148: 'No Data', 149: 'No Data', 150: 'No Data', 151: 'No Data', 152: 'No Data', 153: '<iframe src="python/ritis153.html" height="250" width="300" style="border:none;"></iframe>', 154: '<iframe src="python/ritis154.html" height="250" width="300" style="border:none;"></iframe>', 155: '<iframe src="python/ritis155.html" height="250" width="300" style="border:none;"></iframe>', 156: '<iframe src="python/ritis156.html" height="250" width="300" style="border:none;"></iframe>', 157: '<iframe src="python/ritis157.html" height="250" width="300" style="border:none;"></iframe>', 158: 'No Data', 159: 'No Data', 160: 'No Data', 161: 'No Data', 162: 'No Data', 163: 'No Data', 164: 'No Data', 165: '<iframe src="python/ritis165.html" height="250" width="300" style="border:none;"></iframe>', 166: 'No Data', 167: '<iframe src="python/ritis167.html" height="250" width="300" style="border:none;"></iframe>', 168: '<iframe src="python/ritis168.html" height="250" width="300" style="border:none;"></iframe>', 
+    200: '<iframe src="python/ritis200.html" height="250" width="300" style="border:none;"></iframe>', 201: '<iframe src="python/ritis201.html" height="250" width="300" style="border:none;"></iframe>', 202: '<iframe src="python/ritis202.html" height="250" width="300" style="border:none;"></iframe>', 203: '<iframe src="python/ritis203.html" height="250" width="300" style="border:none;"></iframe>', 204: '<iframe src="python/ritis204.html" height="250" width="300" style="border:none;"></iframe>', 205: '<iframe src="python/ritis205.html" height="250" width="300" style="border:none;"></iframe>', 206: '<iframe src="python/ritis206.html" height="250" width="300" style="border:none;"></iframe>', 207: '<iframe src="python/ritis207.html" height="250" width="300" style="border:none;"></iframe>', 208: '<iframe src="python/ritis208.html" height="250" width="300" style="border:none;"></iframe>', 209: '<iframe src="python/ritis209.html" height="250" width="300" style="border:none;"></iframe>', 210: '<iframe src="python/ritis210.html" height="250" width="300" style="border:none;"></iframe>', 211: '<iframe src="python/ritis211.html" height="250" width="300" style="border:none;"></iframe>', 212: '<iframe src="python/ritis212.html" height="250" width="300" style="border:none;"></iframe>', 213: '<iframe src="python/ritis213.html" height="250" width="300" style="border:none;"></iframe>', 214: '<iframe src="python/ritis214.html" height="250" width="300" style="border:none;"></iframe>', 215: '<iframe src="python/ritis215.html" height="250" width="300" style="border:none;"></iframe>', 216: '<iframe src="python/ritis216.html" height="250" width="300" style="border:none;"></iframe>', 217: '<iframe src="python/ritis217.html" height="250" width="300" style="border:none;"></iframe>', 218: '<iframe src="python/ritis218.html" height="250" width="300" style="border:none;"></iframe>', 219: '<iframe src="python/ritis219.html" height="250" width="300" style="border:none;"></iframe>', 220: '<iframe src="python/ritis220.html" height="250" width="300" style="border:none;"></iframe>', 221: '<iframe src="python/ritis221.html" height="250" width="300" style="border:none;"></iframe>', 222: '<iframe src="python/ritis222.html" height="250" width="300" style="border:none;"></iframe>', 223: '<iframe src="python/ritis223.html" height="250" width="300" style="border:none;"></iframe>', 224: '<iframe src="python/ritis224.html" height="250" width="300" style="border:none;"></iframe>', 225: '<iframe src="python/ritis225.html" height="250" width="300" style="border:none;"></iframe>', 226: '<iframe src="python/ritis226.html" height="250" width="300" style="border:none;"></iframe>', 227: '<iframe src="python/ritis227.html" height="250" width="300" style="border:none;"></iframe>', 228: '<iframe src="python/ritis228.html" height="250" width="300" style="border:none;"></iframe>', 229: '<iframe src="python/ritis229.html" height="250" width="300" style="border:none;"></iframe>', 230: '<iframe src="python/ritis230.html" height="250" width="300" style="border:none;"></iframe>', 231: '<iframe src="python/ritis231.html" height="250" width="300" style="border:none;"></iframe>', 232: '<iframe src="python/ritis232.html" height="250" width="300" style="border:none;"></iframe>', 233: '<iframe src="python/ritis233.html" height="250" width="300" style="border:none;"></iframe>', 234: '<iframe src="python/ritis234.html" height="250" width="300" style="border:none;"></iframe>', 235: '<iframe src="python/ritis235.html" height="250" width="300" style="border:none;"></iframe>', 236: '<iframe src="python/ritis236.html" height="250" width="300" style="border:none;"></iframe>', 237: '<iframe src="python/ritis237.html" height="250" width="300" style="border:none;"></iframe>', 238: '<iframe src="python/ritis238.html" height="250" width="300" style="border:none;"></iframe>', 239: '<iframe src="python/ritis239.html" height="250" width="300" style="border:none;"></iframe>', 240: '<iframe src="python/ritis240.html" height="250" width="300" style="border:none;"></iframe>', 241: '<iframe src="python/ritis241.html" height="250" width="300" style="border:none;"></iframe>', 242: '<iframe src="python/ritis242.html" height="250" width="300" style="border:none;"></iframe>', 243: '<iframe src="python/ritis243.html" height="250" width="300" style="border:none;"></iframe>', 244: '<iframe src="python/ritis244.html" height="250" width="300" style="border:none;"></iframe>', 245: '<iframe src="python/ritis245.html" height="250" width="300" style="border:none;"></iframe>', 246: '<iframe src="python/ritis246.html" height="250" width="300" style="border:none;"></iframe>', 247: '<iframe src="python/ritis247.html" height="250" width="300" style="border:none;"></iframe>', 248: '<iframe src="python/ritis248.html" height="250" width="300" style="border:none;"></iframe>', 249: '<iframe src="python/ritis249.html" height="250" width="300" style="border:none;"></iframe>', 250: '<iframe src="python/ritis250.html" height="250" width="300" style="border:none;"></iframe>', 251: '<iframe src="python/ritis251.html" height="250" width="300" style="border:none;"></iframe>', 252: '<iframe src="python/ritis252.html" height="250" width="300" style="border:none;"></iframe>', 253: '<iframe src="python/ritis253.html" height="250" width="300" style="border:none;"></iframe>', 254: '<iframe src="python/ritis254.html" height="250" width="300" style="border:none;"></iframe>', 255: '<iframe src="python/ritis255.html" height="250" width="300" style="border:none;"></iframe>', 256: '<iframe src="python/ritis256.html" height="250" width="300" style="border:none;"></iframe>', 257: '<iframe src="python/ritis257.html" height="250" width="300" style="border:none;"></iframe>', 258: '<iframe src="python/ritis258.html" height="250" width="300" style="border:none;"></iframe>', 259: '<iframe src="python/ritis259.html" height="250" width="300" style="border:none;"></iframe>', 260: '<iframe src="python/ritis260.html" height="250" width="300" style="border:none;"></iframe>', 261: '<iframe src="python/ritis261.html" height="250" width="300" style="border:none;"></iframe>', 262: '<iframe src="python/ritis262.html" height="250" width="300" style="border:none;"></iframe>', 263: 'No Data', 264: 'No Data', 265: 'No Data', 266: '<iframe src="python/ritis266.html" height="250" width="300" style="border:none;"></iframe>', 267: '<iframe src="python/ritis267.html" height="250" width="300" style="border:none;"></iframe>', 268: '<iframe src="python/ritis268.html" height="250" width="300" style="border:none;"></iframe>', 269: '<iframe src="python/ritis269.html" height="250" width="300" style="border:none;"></iframe>', 270: '<iframe src="python/ritis270.html" height="250" width="300" style="border:none;"></iframe>', 271: '<iframe src="python/ritis271.html" height="250" width="300" style="border:none;"></iframe>', 272: '<iframe src="python/ritis272.html" height="250" width="300" style="border:none;"></iframe>', 273: '<iframe src="python/ritis273.html" height="250" width="300" style="border:none;"></iframe>', 274: '<iframe src="python/ritis274.html" height="250" width="300" style="border:none;"></iframe>', 275: '<iframe src="python/ritis275.html" height="250" width="300" style="border:none;"></iframe>', 276: '<iframe src="python/ritis276.html" height="250" width="300" style="border:none;"></iframe>', 277: '<iframe src="python/ritis277.html" height="250" width="300" style="border:none;"></iframe>', 278: '<iframe src="python/ritis278.html" height="250" width="300" style="border:none;"></iframe>', 279: '<iframe src="python/ritis279.html" height="250" width="300" style="border:none;"></iframe>', 280: '<iframe src="python/ritis280.html" height="250" width="300" style="border:none;"></iframe>', 281: 'No Data', 282: '<iframe src="python/ritis282.html" height="250" width="300" style="border:none;"></iframe>', 283: '<iframe src="python/ritis283.html" height="250" width="300" style="border:none;"></iframe>', 284: '<iframe src="python/ritis284.html" height="250" width="300" style="border:none;"></iframe>', 285: '<iframe src="python/ritis285.html" height="250" width="300" style="border:none;"></iframe>', 286: '<iframe src="python/ritis286.html" height="250" width="300" style="border:none;"></iframe>', 287: 'No Data', 288: 'No Data', 289: 'No Data', 290: '<iframe src="python/ritis290.html" height="250" width="300" style="border:none;"></iframe>', 291: 'No Data', 292: '<iframe src="python/ritis292.html" height="250" width="300" style="border:none;"></iframe>', 293: 'No Data', 294: '<iframe src="python/ritis294.html" height="250" width="300" style="border:none;"></iframe>', 295: '<iframe src="python/ritis295.html" height="250" width="300" style="border:none;"></iframe>', 296: '<iframe src="python/ritis296.html" height="250" width="300" style="border:none;"></iframe>', 297: '<iframe src="python/ritis297.html" height="250" width="300" style="border:none;"></iframe>', 298: '<iframe src="python/ritis298.html" height="250" width="300" style="border:none;"></iframe>', 299: '<iframe src="python/ritis299.html" height="250" width="300" style="border:none;"></iframe>', 
+    300: 'No Data', 301: 'No Data', 302: '<iframe src="python/ritis302.html" height="250" width="300" style="border:none;"></iframe>', 303: '<iframe src="python/ritis303.html" height="250" width="300" style="border:none;"></iframe>', 304: '<iframe src="python/ritis304.html" height="250" width="300" style="border:none;"></iframe>', 305: '<iframe src="python/ritis305.html" height="250" width="300" style="border:none;"></iframe>', 306: '<iframe src="python/ritis306.html" height="250" width="300" style="border:none;"></iframe>', 307: '<iframe src="python/ritis307.html" height="250" width="300" style="border:none;"></iframe>'}
+                 
+    var names = {1: 'I-76 Turnpike', 2: 'I-276 Turnpike', 3: 'I-276 Turnpike', 4: 'I-276 Turnpike', 5: 'I-276 Turnpike', 6: 'I-276 Turnpike', 7: 'I-476 Turnpike (NE Ext)', 8: 'I-476 Turnpike (NE Ext)', 9: 'I-476', 10: 'I-476', 11:'I-476', 12: 'I-476', 13: 'I-476', 14: 'I-476', 15: 'US 13', 16: 'I-76', 17: 'I-76', 18: 'I-76', 19: 'I-76', 20: 'I-76', 21: 'I-295', 22: 'I-295', 23: 'I-295/I-95', 24: 'I-95', 25: 'I-95', 26: 'I-95', 27: 'I-95', 28: 'I-95', 29: 'I-95', 30: 'I-95', 31: 'I-95', 32: 'I-95', 33: 'US 1', 34: 'US 1', 35: 'US 1', 36: 'US 1', 37: 'US 1', 38: 'US 1', 39: 'US 1', 40: 'US 1 (City Ave)', 41: 'US 1', 42: 'US 1 (Roosevelt Blvd)', 43: 'US 1 (Roosevelt Blvd)', 44: 'US 1', 45: 'US 1', 46: 'US 13', 47: 'US 13', 48: 'US 30 (Girard Ave)', 49: 'US 30  (Lancaster Ave)', 50: 'US 30', 51: 'US 30', 52: 'US 30', 53: 'US 30 (Lancaster Ave)', 54: 'US 30 (Lancaster Ave)', 55: 'US 30 Bypass', 56: 'US 30 Bypass', 57: 'US 30 Bypass', 58: 'US 1', 59: 'US 322', 60: 'US 322', 61: 'PA 291', 62: 'PA 291', 63: 'US 30 (Lancaster Ave)', 64: 'US 322/US 202', 65: 'US 202', 66: 'US 202', 67: 'US 202', 68: 'US 202', 69: 'US 202', 70: 'US 202', 71: 'US 202', 72: 'US 202', 73: 'US 202', 74: 'US 422', 75: 'US 422', 76: 'US 422', 77: 'US 422', 78: 'PA 3 (Market St)', 79: 'PA 3', 80: 'PA 3', 81: 'PA 3 (West Chester Pike)', 82: 'PA 3 (West Chester Pike)', 83: 'PA 3 (West Chester Pike)', 84: 'PA 3 (West Chester Pike)', 85: 'PA 3 (West Chester Pike)', 86: 'PA 113', 87: 'PA 113', 88: 'PA 113', 89: 'PA 132 (Street Rd)', 90: 'PA 132 (Street Rd)', 91: 'PA 63', 92: 'PA 63', 93: 'PA 63', 94: 'PA 63', 95: 'County Line Rd', 96: 'County Line Rd', 97: 'PA 332', 98: 'PA 332', 99: 'PA 611 (Broad St)', 100: 'PA 611 (Broad St)', 101: 'PA 611 (Broad St)', 102: 'PA 611', 103: 'PA 611', 104: 'PA 611', 105: 'PA 309', 106: 'PA 309', 107: 'PA 309', 108: 'PA 309', 109: 'PA 63', 110: 'Ridge Ave', 111: 'Ridge Ave', 112: 'Ridge Ave', 113: 'PA 100', 114: 'PA 100', 115: 'PA 100', 116: 'PA 100', 117: 'I-676 (Vine Street Expy)', 118: 'Baltimore Pike', 119: 'Baltimore Pike', 120: 'Baltimore Pike', 121: 'US 13', 122: 'US 13', 123: 'PA 463', 124: 'PA 463', 125: 'PA 73', 126: 'PA 73', 127: 'PA 73',  128: 'PA 363 (S Valley Forge Rd)', 129: 'PA 363 (S Valley Forge Rd)', 131: 'Sumneytown Pike', 130: 'Norristown Rd', 132: 'SR 2017 (Susquehanna Rd)', 133: 'PA 29', 134: 'PA 29', 135: 'Ridge Pike', 136: 'PA 611', 137: 'PA 724', 138: 'PA 23', 139: 'PA 352 / Boot Rd', 140: 'US 322', 141: 'PA 113',  142: 'PA 41', 143: 'US 30 Bypass', 144: 'PA 413', 145: 'PA 413', 146: 'Bristol Rd', 147: 'PA 611', 148: 'PA 313', 149: 'PA 313', 150: 'PA 313', 151: 'PA 309', 152: 'US 202 Bus', 153: 'US 202', 154: 'PA 352', 155: 'PA 352', 156: 'PA 252', 157: 'Lansdowne Ave', 158: 'PA 611 (S Broad St)', 159: 'Chestnut St', 160: 'Chestnut St', 161: 'Chestnut St', 162: 'Walnut St', 163: 'Walnut St', 164: 'Walnut St', 165: 'I-676', 166: 'Route 90', 167: 'US 322', 168: 'US 202', 200: 'NJ Turnpike', 201: 'NJ Turnpike', 202: 'NJ Turnpike', 203: 'I-295', 204: 'NJ Turnpike', 205: 'NJ Turnpike', 206: 'NJ Turnpike', 207: 'I-295', 208: 'I-295', 209: 'I-295', 210: 'AC Expressway', 211: 'NJ 42', 212: 'Nj 168', 213: 'NJ 168', 214: 'Sicklerville Rd/536 Spur', 215: 'US 1', 216: 'US 1', 217: 'US 1', 218: 'US 1', 219: 'US 206', 220: 'US 206', 221: 'US 206', 222: 'US 30', 223: 'US 30', 224: 'US 30', 225: 'I-95', 226: 'I-195', 227: 'I-676', 228: 'I-76', 229: 'I-295', 230: 'I-295', 231: 'US 130', 232: 'US 130', 233: 'US 130', 234: 'US 130', 235: 'US 130', 236: 'US 130', 237: 'US 130', 238: 'US 130/I-295', 239: 'US 322', 240: 'US 322', 241: 'US 322', 242: 'US 322', 243: 'NJ 29', 244: 'NJ 31', 245: 'NJ 29', 246: 'NJ 31', 247: 'NJ 31', 248: 'NJ 31', 249: 'NJ 33', 250: 'NJ 33', 251: 'NJ 33', 252: 'NJ 38', 253: 'NJ 38', 254: 'NJ 38', 255: 'CR 537 (Marne Hwy)', 256: 'NJ 47', 257: 'NJ 47', 258: 'NJ 55', 259: 'NJ 55', 260: 'NJ 45', 261: 'NJ 45', 262: 'NJ 41', 263: 'CR 551 (Kings Hwy)', 264: 'CR 553 (Kings Hwy)', 265: 'CR 553 (Kings Hwy)', 266: 'NJ 42', 267: 'NJ 70', 268: 'NJ 70', 269: 'NJ 70', 270: 'NJ 73', 271: 'NJ 73', 272: 'NJ 73', 273: 'NJ 73', 274: 'CR 571 (Washington Rd)', 275: 'CR 571', 276: 'I-295', 277: 'I-295', 278: 'NJ 29', 279: 'NJ Turnpike', 280: 'CR 644', 281: 'CR 644', 282: 'CR 561', 283: 'CR 561', 284: 'CR 636', 285: 'NJ 41', 286: 'CR 544', 287: 'CR 544', 288: 'CR 544', 289: 'CR 673 (Springdale Rd)', 290: 'CR 673 (White Horse Rd)', 291: 'CR 534 (Blackwood-Cementon Rd)', 292: 'CR 686 (Gibbsboro Rd)', 293: 'CR 689 (Berlin - Cross Keys Rd)', 294: 'NJ 41', 295: 'NJ 41 (Kings Highway)', 296: 'CR 551 (Kings Hwy)', 297: 'NJ 168', 298: 'NJ 129', 299: 'CR 533', 300: 'CR 638', 301: 'CR 583 (Princeton Pike)', 302: 'NJ 90', 303: 'CR 541/691', 304: 'CR 607', 305: 'CR 603', 306: 'CR 534/CR 640', 307: 'CR 622'}
+    
+    function pickColor(x, a, b, c, d) {
+        if (x == null) {
+            return 'grey'
+        }
+        if (x > a) {
+            return 'darkred'
+        }
+        if (x > b) {
+            return 'red'
+        }
+        if (x > c) {
+            return 'orange'
+        }
+        if (x > d) {
+            return 'yellow'
+        }
+        else {
+            return 'grey'
+        } 
+    }
+    var colors = ['#FF3333', '#FF4E33', '#FF5D33', '#FF6C33', '#FF8733', '#FF9A33', '#FFB033', '#FFC033', '#FFD633', '#FFFC33', '#E2FF2A', '#DEFF2A', '#CAFF2A', '#C2FF2A', '#9AFF2A', '#7AFF2A', '#4BFF2A', '#2AFF68', '#2AFF98', '#2AFFBB', '#2AFFD7', '#2AFFF3', '#2ADFFF', '#2AC7FF', '#2AA8FF', '#2A94FF', '#2A78FF', '#2A50FF', '#3B2AFF', '#532AFF', '#6B2AFF', '#7E2AFF', '#9A2AFF', '#AE2AFF', '#C62AFF', '#DE2AFF', '#F62AFF', '#FF2AE1', '#FF2AB1', '#FF2A8D', '#FF2A75', '#FF2A55'];
+     
+    function rand(colors) {
+        var myColor = colors[Math.floor(Math.random() * colors.length)];
+        return myColor;
+    };
+    
+    function signalColor(feature) {
+        if (feature == null) {
+            return 'grey'
+        }
+        else return 'violet'
+    }
+    function signalSize(feature) {
+        if (feature == null) {
+            return 1
+        }
+        else return 2
+    }
+        
+// MAP LAYERS
+        
+    var cctv1 = L.geoJson(cctv, {
+        pointToLayer: function(feature, latlng) { 
+                return L.circleMarker(latlng, { 
+                        color: 'grey',
+                        weight: 0,
+                        fillColor: 'green',
+                        fillOpacity: .8,
+                        radius: 1
+                    });
+        }});
+    var signals1 = L.geoJson(signals, {
+        pointToLayer: function(feature, latlng) { 
+                return L.circleMarker(latlng, { 
+                        color: 'grey',
+                        weight: 0,
+                        fillColor: signalColor(feature.properties.CORRIDOR),
+                        fillOpacity: .8,
+                        radius: signalSize(feature.properties.CORRIDOR)
+                    });
+        }});
+    var bus_routes1 = L.geoJson(bus_routes, {
+        style: {
+            weight: 1,
+            opacity: .4,
+            color: 'lightblue'
+        }}).addTo(map);
+    var rail_merged1 = L.geoJson(rail_merged, {
+        style: {
+            weight: 1.5,
+            opacity: .4,
+            color: 'teal'
+        }}).addTo(map);
+    
+        
+    
+    var incCnt = L.geoJson(rimis_roads, {
+        style: {
+              weight: 3,
+              opacity: .7
+          },
+        onEachFeature : function(feature, layer) {
+            layer.setStyle({
+                color: pickColor(feature.properties.EVT_INC_CT/feature.properties.MYLENGTH, 6.312, 2.144, .4630, 0)
+            });
+            layer.on('mouseover', function() {
+                  layer.setStyle({
+                      opacity: 1
+                  });
+                  layer.bindTooltip('<b>'+'RIMIS: Corridor #'+feature.properties.FACID+': '+names[feature.properties.FACID]+'<br></b>'+'<table style="width:100%"><tr><td>Incident Events (Count)</td><td>'+feature.properties.EVT_INC_CT+'</td></tr><tr><td>Incident Duration (Minutes)</td><td>'+feature.properties.EVT_INC_DU+'</td></tr></table>').openTooltip();
+              });
+            layer.on('mouseout', function() {
+                layer.setStyle({
+                    opacity: .7
+                });
+            });
+            layer.on('click', function() {
+                for(i=0; i<308; i++) {
+                    if (i == feature.properties.FACID) {
+                        info.update(rimis[i], ritis[i])
+                }
+            }
+            })
+        
+    }});
+    var incDur = L.geoJson(rimis_roads, {
+        style: {
+              weight: 3,
+              opacity: .7
+          },
+        onEachFeature : function(feature, layer) {
+            layer.setStyle({
+                color: pickColor(feature.properties.EVT_INC_DU/feature.properties.MYLENGTH, 293.762469, 129.610608, 35.4977844, 0)
+            });
+            layer.on('mouseover', function() {
+                  layer.bindTooltip('<b>'+'RIMIS: Corridor #'+feature.properties.FACID+': '+names[feature.properties.FACID]+'<br></b>'+'<table style="width:100%"><tr><td>Incident Events (Count)</td><td>'+feature.properties.EVT_INC_CT+'</td></tr><tr><td>Incident Duration (Minutes)</td><td>'+feature.properties.EVT_INC_DU+'</td></tr></table>').openTooltip();
+              });
+            layer.on('click', function() {
+                for(i=0; i<308; i++) {
+                    if (i == feature.properties.FACID) {
+                        info.update(rimis[i], ritis[i])
+                }
+            }
+            })
+        }
+    }).addTo(map);
+
+    var corridorBulk = L.geoJson(rimis_roads, {
+        style: {
+              weight: 3,
+              opacity: .5
+          },
+        
+        onEachFeature : function(feature, layer) {
+            var thisColor = rand(colors);
+              layer.setStyle({
+                   color: thisColor
+                });
+                
+              layer.on('mouseover', function() {
+                  layer.setStyle({
+                      color: 'grey'
+                  }).bindTooltip('<b>'+'RIMIS: Corridor #'+feature.properties.FACID+': '+names[feature.properties.FACID]+'<br></b>'+'<table style="width:100%"><tr><td>Incident Events (Count)</td><td>'+feature.properties.EVT_INC_CT+'</td></tr><tr><td>Incident Duration (Minutes)</td><td>'+feature.properties.EVT_INC_DU+'</td></tr></table>').openTooltip();
+              });
+              layer.on('mouseout', function() {
+                  layer.setStyle({
+                      color: thisColor
+                  });
+              });
+              layer.on('click', function() {
+                  for(i=0; i<308; i++) {
+                    if (i == feature.properties.FACID) {
+                        info.update(rimis[i], ritis[i])
+                        }
+                    }
+                })
+            }
+    });
+        
+    var ritisIncCnt = L.geoJson(ritis_roads, {
+        style: {
+              weight: 3,
+              opacity: .7
+          },
+        onEachFeature : function(feature, layer) {
+            layer.setStyle({
+                color: pickColor(feature.properties.EVT_INC_CT/feature.properties.MYLENGTH, 0.002502, 0.0006035, 0.0001220, 0)
+            });
+            layer.on('mouseover', function() {
+                  layer.setStyle({
+                      opacity: 1
+                  });
+                  layer.bindTooltip('<b>'+'RITIS: Corridor #'+feature.properties.FACID+': '+names[feature.properties.FACID]+'<br></b>'+'<table style="width:100%"><tr><td>Incident Events (Count)</td><td>'+feature.properties.EVT_INC_CT+'</td></tr><tr><td>Incident Duration (Minutes)</td><td>'+feature.properties.EVT_INC_DU+'</td></tr></table>').openTooltip();
+              });
+            layer.on('mouseout', function() {
+                layer.setStyle({
+                    opacity: .7
+                });
+            });
+            layer.on('click', function() {
+                for(i=0; i<308; i++) {
+                    if (i == feature.properties.FACID) {
+                        info.update(rimis[i], ritis[i])
+                }
+            }
+            })
+        
+    }});
+        
+    var ritisIncDur = L.geoJson(ritis_roads, {
+        style: {
+              weight: 3,
+              opacity: .7
+          },
+        onEachFeature : function(feature, layer) {
+            layer.setStyle({
+                color: pickColor(feature.properties.EVT_INC_DU/feature.properties.MYLENGTH, .24116166, .064473525, .010249158, 0)
+            });
+            layer.on('mouseover', function() {
+                  layer.setStyle({
+                      opacity: 1
+                  });
+                  layer.bindTooltip('<b>'+'RITIS: Corridor #'+feature.properties.FACID+': '+names[feature.properties.FACID]+'<br></b>'+'<table style="width:100%"><tr><td>Incident Events (Count)</td><td>'+feature.properties.EVT_INC_CT+'</td></tr><tr><td>Incident Duration (Minutes)</td><td>'+feature.properties.EVT_INC_DU+'</td></tr></table>').openTooltip();
+              });
+            layer.on('mouseout', function() {
+                layer.setStyle({
+                    opacity: .7
+                });
+            });
+            layer.on('click', function() {
+                for(i=0; i<308; i++) {
+                    if (i == feature.properties.FACID) {
+                        info.update(rimis[i], ritis[i])
+                }
+            }
+            })
+        
+    }});
+    
+
+
+// INFO BOX
+        
+    var info = L.control();
+
+    info.onAdd = function (map) {
+        this._div = L.DomUtil.create('div', 'info');
+        this.update();
+        return this._div;
+    };
+        
+    info.update = function (fig1, fig2) {
+        this._div.innerHTML = (fig1 ? '<b>RIMIS<br></b>'+fig1+'<br><b>RITIS</b><br>'+fig2 : 'Click Any Road Segment');
+    };
+
+    info.addTo(map);
+
+// BASEMAP CONTROL
+        
+
+        
+    var basemaps = {
+        "Basemap": tiles, 
+        "Street Map": tiles2,
+        "Imagery": tiles3
+    }
+
+    var myLayers = {
+        "Comparison": corridorBulk,
+        "RIMIS Incidents (Count)": incCnt,
+        "RIMIS Incidents (Duration)": incDur,
+        "RITIS Incidents (Count)": ritisIncCnt,
+        "RITIS Incidents (Duration)": ritisIncDur
+    }
+    
+    var myOverlay = {
+        "CCTV": cctv1,
+        "Traffic Signals": signals1,
+        "Bus Routes": bus_routes1,
+        "Rail Routes": rail_merged1
+    }
+    
+    L.control.layers(basemaps, null, {collapsed:false, position: 'topleft'}).addTo(map);
+    L.control.layers(myLayers, myOverlay, {collapsed:false, position: 'topleft'}).addTo(map);
+        
+    
+
+    </script>
+    
+</body>
+
+</html>
